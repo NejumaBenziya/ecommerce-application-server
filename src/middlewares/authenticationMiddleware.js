@@ -10,6 +10,8 @@ const getUserMiddleware=async(req,res,next)=>{
         
         const user= await UserModel.findOne({email:decoded.email})
         req.user=user
+        console.log(user);
+        
     }catch(err){
         console.log("Not authorized");
         

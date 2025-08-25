@@ -22,12 +22,15 @@ const statusUpdateController=async(req,res)=>{
     await order.save()
     res.json({"message":"Status updated successfully"})
  }catch(err){
+    
     if(err.name==="ValidationError"){
       const message=getValidationErrorMessage(err)
       res.status(400).json({message:message})
     }
     else{
       res.status(500).json({message:"Something went wrong in the server.Please try after some time."})
+      
+      
     }
   }
 }

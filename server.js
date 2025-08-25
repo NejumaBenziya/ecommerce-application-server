@@ -2,7 +2,16 @@ const express=require("express")
 const mongoose=require('mongoose')
 const cookieParser=require('cookie-parser')
 const app=express()
+var cors = require('cors')
 require('dotenv').config()
+console.log(process.env.CLIENT_URL);
+
+var corsOptions={
+    origin:process.env.CLIENT_URL,
+    optionSuccessStatus:200,
+    credentials:true
+}
+app.use(cors(corsOptions))
 const userRouter=require("./src/routers/userRouter")
 const sellerRouter=require("./src/routers/sellerRouter")
 const productRouter=require("./src/routers/adminRouter")

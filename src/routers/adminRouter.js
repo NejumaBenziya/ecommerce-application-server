@@ -1,9 +1,12 @@
 const express=require("express")
 const router=express.Router()
-const {addProductController, roleUpdateController,userListController,saleController}=require("../controllers/adminController")
+const {addProductController, roleUpdateController,userListController,saleController,removeProductController,saleListController,removeSaleController}=require("../controllers/adminController")
 const {adminOnlyMiddleware}=require("../middlewares/authenticationMiddleware")
 router.post("/addproduct",adminOnlyMiddleware,addProductController)
 router.get("/user-list",adminOnlyMiddleware,userListController)
 router.put("/update-role",adminOnlyMiddleware,roleUpdateController)
 router.post("/addsale",adminOnlyMiddleware,saleController)
+router.delete("/remove-product",adminOnlyMiddleware,removeProductController)
+router.get("/sale-list",adminOnlyMiddleware,saleListController)
+router.delete("/remove-sale",adminOnlyMiddleware,removeSaleController)
 module.exports=router

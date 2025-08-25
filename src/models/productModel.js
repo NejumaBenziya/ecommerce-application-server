@@ -2,6 +2,7 @@ const mongoose=require('mongoose')
 const productSchema = new mongoose.Schema(
     {
        
+      
         productImage:{
             type:String,
             trim:true
@@ -28,7 +29,7 @@ const productSchema = new mongoose.Schema(
        },
        price:
        {
-        type:String,
+        type:Number,
         required:[true,"price is required"]
        },
        quantity:{
