@@ -6,11 +6,16 @@ var cors = require('cors')
 require('dotenv').config()
 console.log(process.env.CLIENT_URL);
 
+
 var corsOptions = {
-    origin: process.env.CLIENT_URL,
-    optionsSuccessStatus: 200,
-    credentials: true
-};
+  origin: [
+    process.env.CLIENT_URL, // your production frontend
+    "https://ecommerce-application-client-nu3d-43x6j6kle.vercel.app", // preview URL
+  ],
+  optionsSuccessStatus: 200,
+  credentials: true,
+}
+app.use(cors(corsOptions))
 
 app.use(cors(corsOptions))
 const userRouter=require("./src/routers/userRouter")
