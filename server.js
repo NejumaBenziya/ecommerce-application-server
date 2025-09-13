@@ -6,11 +6,12 @@ var cors = require('cors')
 require('dotenv').config()
 console.log(process.env.CLIENT_URL);
 
-var corsOptions={
-    origin:process.env.CLIENT_URL,
-    optionSuccessStatus:200,
-    credentials:true
-}
+var corsOptions = {
+    origin: process.env.CLIENT_URL,
+    optionsSuccessStatus: 200,
+    credentials: true
+};
+
 app.use(cors(corsOptions))
 const userRouter=require("./src/routers/userRouter")
 const sellerRouter=require("./src/routers/sellerRouter")
@@ -18,7 +19,8 @@ const productRouter=require("./src/routers/adminRouter")
 const {getUserMiddleware}=require("./src/middlewares/authenticationMiddleware")
 
 
-const port=process.env.PORT
+const port = process.env.PORT || 3000;
+
 const dbConnectionLink=process.env.DB_CONNECTION_LINK
 mongoose.connect(dbConnectionLink,{
 
