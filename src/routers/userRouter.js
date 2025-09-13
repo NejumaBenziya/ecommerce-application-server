@@ -1,14 +1,19 @@
 const express=require("express")
 const router=express.Router()
-const {registerController, loginController,productListController,cartController,reviewController,orderController,cancelOrderController}=require("../controllers/userController")
+const {registerController, loginController,productListController,cartController,reviewController,orderController,cancelOrderController,cartListController,productController,cartRemoveController,userOrderController,cartQuantityController,addReviewController,reviewListController}=require("../controllers/userController")
 const {memberOnlyMiddleware}=require("../middlewares/authenticationMiddleware")
 router.post("/register",registerController)
 router.post("/login",loginController)
 router.get("/product-list",productListController)
-router.post("/addtocart",memberOnlyMiddleware,cartController)
+router.get("/product",productController)
+router.put("/addtocart",memberOnlyMiddleware,cartController)
+router.put("/removecart",memberOnlyMiddleware,cartRemoveController)
 router.post("/review",memberOnlyMiddleware,reviewController)
 router.post("/order",memberOnlyMiddleware,orderController)
 router.put("/cancel-order",memberOnlyMiddleware,cancelOrderController)
-
-
+router.get("/cart-list",memberOnlyMiddleware,cartListController)
+router.get("/user-orders",memberOnlyMiddleware,userOrderController)
+router.put("/quantity",memberOnlyMiddleware,cartQuantityController)
+router.post("/add-review",memberOnlyMiddleware,addReviewController)
+router.get("/review-list",reviewListController)
 module.exports=router

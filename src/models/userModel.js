@@ -28,10 +28,12 @@ const userSchema=new mongoose.Schema({
         enum:["member","admin","seller"],
         default:"member"
         },
-    cart:[{
-        type: mongoose.Schema.Types.ObjectId,
-        ref : "cart"
-    }],
+     cart: [
+    {
+      productId: { type: mongoose.Schema.Types.ObjectId, ref: "Product" },
+      quantity: { type: Number, default: 1 }
+    }
+  ],
     orders:[{
         type: mongoose.Schema.Types.ObjectId,
         ref : "order"

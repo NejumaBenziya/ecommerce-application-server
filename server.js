@@ -36,4 +36,4 @@ app.use("/api/seller",sellerRouter)
 app.use("/api/admin",productRouter)
 app.listen(port,()=>{
     console.log(`server running on port ${port}...`)
-})
+})  

@@ -1,7 +1,7 @@
 const mongoose=require('mongoose')
 const saleSchema = new mongoose.Schema(
     {
-        sale_tittle:{
+        sale_title:{
             type:String,
             unique:true
         },
@@ -20,4 +20,4 @@ const saleSchema = new mongoose.Schema(
     }
 )
 const SaleModel=mongoose.model("sale",saleSchema)
-module.exports=SaleModel
+module.exports=SaleModel    

@@ -2,12 +2,10 @@ const jwt=require("jsonwebtoken")
 const JWT_SECRET=process.env.JWT_SECRET
 const UserModel=require("../models/userModel")
 const getUserMiddleware=async(req,res,next)=>{
+    
     try{
-        const token=req.headers.authorization.split(" ")[1]
-        var decoded=jwt.verify(token,JWT_SECRET)
-        console.log(decoded);
-        
-        
+       const token=req.headers.authorization.split(" ")[1]
+       var decoded=jwt.verify(token,JWT_SECRET)
         const user= await UserModel.findOne({email:decoded.email})
         req.user=user
         console.log(user);
