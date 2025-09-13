@@ -20,10 +20,13 @@ const {getUserMiddleware}=require("./src/middlewares/authenticationMiddleware")
 
 const port=process.env.PORT
 const dbConnectionLink=process.env.DB_CONNECTION_LINK
-mongoose.connect(dbConnectionLink).then(res=>{
-    console.log("DB connected");
-    
-})
+mongoose.connect(dbConnectionLink,{
+
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+}).then(() => console.log("MongoDB connected"))
+  .catch(err => console.log(err));
+
 app.use(express.json())
 app.use(cookieParser())
 app.use(getUserMiddleware)
