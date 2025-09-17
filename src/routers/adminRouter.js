@@ -6,7 +6,7 @@ router.post("/addproduct",adminOnlyMiddleware,addProductController)
 router.get("/user-list",adminOnlyMiddleware,userListController)
 router.put("/update-role",adminOnlyMiddleware,roleUpdateController)
 router.post("/addsale",adminOnlyMiddleware,saleController)
-router.delete("/remove-product",adminOnlyMiddleware,removeProductController)
+router.put("/remove-product",adminOnlyMiddleware,removeProductController)
 router.get("/sale-list",adminOnlyMiddleware,saleListController)
 
 router.delete("/sales/:id", adminOnlyMiddleware, removeSaleController);

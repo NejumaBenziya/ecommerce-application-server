@@ -108,17 +108,23 @@ const saleController = async (req, res) => {
 };
 
 
-const removeProductController=async(req,res)=>{
-  try{
-  const data=req.body
- 
-  
-   await ProductModel.deleteOne(data);
-   res.json({message:"deleted successfully"})
-  }catch(err){
-    res.status(500).json({message:"Something went wrong in the server.Please try after some time."})
+const removeProductController = async (req, res) => {
+  try {
+    const { _id } = req.body; // make sure frontend sends product _id
+
+    await ProductModel.updateOne(
+      { _id },
+      { $set: { isDeleted: true, deletedAt: new Date() } }
+    );
+
+    res.json({ message: "Product soft deleted successfully" });
+  } catch (err) {
+    res.status(500).json({
+      message: "Something went wrong in the server. Please try again later.",
+    });
   }
-}
+};
+
 const saleListController=async(req,res)=>{
   try{
     
