@@ -2,8 +2,8 @@ const mongoose=require('mongoose')
 const saleSchema = new mongoose.Schema(
     {
         sale_title:{
-            type:String,
-            unique:true
+            type:String
+           
         },
            percentage:{
             type:Number,
@@ -14,10 +14,13 @@ const saleSchema = new mongoose.Schema(
          valid_till:{
             type:Date,
             required:[true,"expiry date is required"],
-         }
+            index: { expires: 0 }, 
+         },
+        
     },{
         timestamps : true
     }
 )
+
 const SaleModel=mongoose.model("sale",saleSchema)
 module.exports=SaleModel    

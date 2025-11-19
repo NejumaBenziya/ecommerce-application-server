@@ -84,7 +84,8 @@ const saleController = async (req, res) => {
     const sale = await SaleModel.create({
       sale_title,
       percentage,
-      valid_till: new Date(valid_till),
+      valid_till: new Date(valid_till)
+      
     });
 
     res.json({ message: "Sale created successfully", sale });
@@ -110,15 +111,20 @@ const saleController = async (req, res) => {
 
 const removeProductController = async (req, res) => {
   try {
-    const { _id } = req.body; // make sure frontend sends product _id
+    const { _id } = req.body;
 
-    await ProductModel.updateOne(
+    const result = await ProductModel.updateOne(
       { _id },
       { $set: { isDeleted: true, deletedAt: new Date() } }
     );
 
+    if (result.modifiedCount === 0) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+
     res.json({ message: "Product soft deleted successfully" });
   } catch (err) {
+    console.error(err);
     res.status(500).json({
       message: "Something went wrong in the server. Please try again later.",
     });
