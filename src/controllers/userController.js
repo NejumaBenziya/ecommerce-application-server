@@ -61,9 +61,19 @@ const loginController=async(req,res)=>{
   if(user){
     bcrypt.compare(password,user.password,function(err,result){
       if(result){
-        var token=jwt.sign({email},jwt_secret)
-        res.cookie('token',token,{maxAge:30*24*60*1000,httpOnly:true,sameSite:"None",secure:true})
-        
+        var token = jwt.sign(
+  { id: user._id, email: user.email, role: user.role },
+  jwt_secret,
+  { expiresIn: "1d" }
+);
+
+       res.cookie("token", token, {
+  httpOnly: true,
+  sameSite: "lax",   // ✅ IMPORTANT
+  secure: false,    // ✅ MUST be false on localhost
+  maxAge: 24 * 60 * 60 * 1000,
+});
+
        
 res.json({
   success: true,
@@ -87,6 +97,8 @@ res.json({
     res.status(500).json({"message":"something went wrong in the server. Please try after sometime"})
 }
 }
+
+
 const productListController=async(req,res)=>{
   try{
     const categoryFilter=req.query.productCategory

@@ -1,15 +1,15 @@
 const express=require("express")
 const router=express.Router()
 const {addProductController, roleUpdateController,userListController,saleController,removeProductController,saleListController,removeSaleController,addSaleController}=require("../controllers/adminController")
-const {adminOnlyMiddleware}=require("../middlewares/authenticationMiddleware")
-router.post("/addproduct",adminOnlyMiddleware,addProductController)
-router.get("/user-list",adminOnlyMiddleware,userListController)
-router.put("/update-role",adminOnlyMiddleware,roleUpdateController)
-router.post("/addsale",adminOnlyMiddleware,saleController)
-router.put("/remove-product",adminOnlyMiddleware,removeProductController)
-router.get("/sale-list",adminOnlyMiddleware,saleListController)
+const {memberOnlyMiddleware,adminOnlyMiddleware}=require("../middlewares/authenticationMiddleware")
+router.post("/addproduct",memberOnlyMiddleware,adminOnlyMiddleware,addProductController)
+router.get("/user-list",memberOnlyMiddleware,adminOnlyMiddleware,userListController)
+router.put("/update-role",memberOnlyMiddleware,adminOnlyMiddleware,roleUpdateController)
+router.post("/addsale",memberOnlyMiddleware,adminOnlyMiddleware,saleController)
+router.put("/remove-product",memberOnlyMiddleware,adminOnlyMiddleware,removeProductController)
+router.get("/sale-list",memberOnlyMiddleware,adminOnlyMiddleware,saleListController)
 
-router.delete("/sales/:id", adminOnlyMiddleware, removeSaleController);
+router.delete("/sales/:id", memberOnlyMiddleware,adminOnlyMiddleware, removeSaleController);
 
-router.put("/add-sale",adminOnlyMiddleware,addSaleController)
+router.put("/add-sale",memberOnlyMiddleware,adminOnlyMiddleware,addSaleController)
 module.exports=router

@@ -1,42 +1,60 @@
 const jwt=require("jsonwebtoken")
 const JWT_SECRET=process.env.JWT_SECRET
 const UserModel=require("../models/userModel")
-const getUserMiddleware=async(req,res,next)=>{
-    
-    try{
-       const token=req.headers.authorization.split(" ")[1]
-       var decoded=jwt.verify(token,JWT_SECRET)
-        const user= await UserModel.findOne({email:decoded.email})
-        req.user=user
-        console.log(user);
-        
-    }catch(err){
-        console.log("Not authorized");
-        
+const getUserMiddleware = async (req, res, next) => {
+  try {
+    const token = req.cookies.token; // ✅ read from cookie
+
+    if (!token) {
+      return res.status(401).json({ message: "No token found" });
     }
-    next()
-}
+
+    const decoded = jwt.verify(token, JWT_SECRET);
+
+    const user = await UserModel.findOne({ email: decoded.email });
+    if (!user) {
+      return res.status(401).json({ message: "User not found" });
+    }
+
+    req.user = user;
+    next(); // ✅ only call next if success
+  } catch (err) {
+    return res.status(401).json({ message: "Not authorized" });
+  }
+};
 const adminOnlyMiddleware=(req,res,next)=>{
     if(req.user.role==="admin"){
         next()
     }else{
-        return res.status(401).json({messag:"User is not admin"})
+        return res.status(401).json({message:"User is not admin"})
     }
 
 }
-const memberOnlyMiddleware=(req,res,next)=>{
-    if(req.user.role==="member"){
-        next()
-    }else{
-        return res.status(401).json({messag:"User is not member"})
+const memberOnlyMiddleware = async (req, res, next) => {
+  try {
+    const token = req.cookies.token;
+    if (!token) {
+      return res.status(401).json({ message: "Login required" });
     }
 
-}
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await UserModel.findById(decoded.id);
+
+    if (!user) {
+      return res.status(401).json({ message: "User not found" });
+    }
+
+    req.user = user;
+    next();
+  } catch (err) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+};
 const sellerOnlyMiddleware=(req,res,next)=>{
     if(req.user.role==="seller"){
         next()
     }else{
-        return res.status(401).json({messag:"User is not seller"})
+        return res.status(401).json({message:"User is not seller"})
     }
 
 }
