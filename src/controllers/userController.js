@@ -69,8 +69,8 @@ const loginController=async(req,res)=>{
 
        res.cookie("token", token, {
   httpOnly: true,
-  sameSite: "lax",   // ✅ IMPORTANT
-  secure: false,    // ✅ MUST be false on localhost
+  sameSite: "none",   // ✅ IMPORTANT
+  secure: true,    // ✅ MUST be false on localhost
   maxAge: 24 * 60 * 60 * 1000,
 });
 
@@ -107,6 +107,8 @@ const productListController=async(req,res)=>{
       products=await ProductModel.find({productCategory:categoryFilter})
     }else{
       products =await ProductModel.find()
+      
+      
     }
     res.json({message:"Fetched products successfully",products})
   }catch(err){

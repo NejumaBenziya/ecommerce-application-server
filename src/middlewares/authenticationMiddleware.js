@@ -32,14 +32,17 @@ const adminOnlyMiddleware=(req,res,next)=>{
 }
 const memberOnlyMiddleware = async (req, res, next) => {
   try {
+   
+    
     const token = req.cookies.token;
     if (!token) {
       return res.status(401).json({ message: "Login required" });
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await UserModel.findById(decoded.id);
+     const user = await UserModel.findOne({ email: decoded.email });
 
+  
     if (!user) {
       return res.status(401).json({ message: "User not found" });
     }

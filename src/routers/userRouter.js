@@ -36,6 +36,10 @@ router.post("/logout", (req, res) => {
 
 // ✅ RESTORE LOGIN (ON REFRESH)
 router.get("/me", memberOnlyMiddleware, (req, res) => {
+   if (!req.user) {
+    return res.status(401).json({ message: "Not authenticated" });
+  }
+
   res.json({
   user: {
     id: req.user._id,
