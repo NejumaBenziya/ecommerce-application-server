@@ -70,7 +70,8 @@ const loginController=async(req,res)=>{
        res.cookie("token", token, {
   httpOnly: true,
   sameSite: "none",   // ✅ IMPORTANT
-  secure: true,    // ✅ MUST be false on localhost
+  secure: true, 
+  path:"/",   // ✅ MUST be false on localhost
   maxAge: 24 * 60 * 60 * 1000,
 });
 

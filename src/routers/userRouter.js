@@ -27,8 +27,9 @@ router.post("/login", loginController); // ✅ REAL LOGIN
 router.post("/logout", (req, res) => {
   res.clearCookie("token", {
     httpOnly: true,
-    sameSite: "lax",
-    secure: false, // localhost
+    sameSite: "none",
+    secure: true,
+    path:"/" ,
   });
 
   res.json({ message: "Logged out successfully" });
