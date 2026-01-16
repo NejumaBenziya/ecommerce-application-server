@@ -1,15 +1,16 @@
 const UserModel=require("../models/userModel")
-const ProductModel =require("../models/productModel")
-
 const bcrypt=require('bcrypt')
 var jwt=require('jsonwebtoken')
 const saltRounds=Number(process.env.SALT_ROUNDS)
 const jwt_secret=process.env.JWT_SECRET
 const {getValidationErrorMessage}= require("../utils/validationUtils")
-const OrderModel = require("../models/orderModel")
+const ProductModel=require("../models/productModel")
+const OrderModel=require("../models/orderModel")
+const crypto = require("crypto");
 const mongoose = require("mongoose");
 const { log } = require("node:console")
 const ReviewModel = require("../models/reviewModel")
+const razorpay = require("../config/razorpay");
 
 const registerController=async (req,res)=>{
  
@@ -364,37 +365,7 @@ const orderController = async (req, res) => {
       return res.status(400).json({ message: "Your cart is empty." });
     }
 
-    const { houseName, street, landMark, pincode, city, state, paymentMethod } = req.body;
-
-    // Step 1: Check stock for all items
-    for (let item of user.cart) {
-      const product = await ProductModel.findById(item.productId);
-      console.log(product);
-      
-      if (!product) {
-        return res.status(404).json({ message: `Product not found: ${item.productId}` });
-      }
-
-      if (product.quantity < item.quantity) {
-        return res.status(400).json({ 
-          message: `${product.productName} is out of stock. Available: ${product.quantity}` 
-        });
-      }
-    }
-
-    // Step 2: Deduct stock
-    for (let item of user.cart) {
-      const product = await ProductModel.findById(item.productId);
-
-      product.quantity -= item.quantity;
-      await product.save(); // 👈 your pre-save middleware will auto update isAvailable
-    }
-
-    // Step 3: Create the order
-    const order = await OrderModel.create({
-      products: user.cart,
-      name: user.name,
-      phone: user.phone,
+    const {
       houseName,
       street,
       landMark,
@@ -402,33 +373,149 @@ const orderController = async (req, res) => {
       city,
       state,
       paymentMethod,
+      razorpay_payment_id,
+      razorpay_order_id,
+      razorpay_signature,
+    } = req.body;
+
+    // ==================================
+    // 🔐 STEP 0: VERIFY PAYMENT (ONLINE)
+    // ==================================
+    if (paymentMethod !== "Cash on Delivery") {
+      if (
+        !razorpay_payment_id ||
+        !razorpay_order_id ||
+        !razorpay_signature
+      ) {
+        return res.status(400).json({ message: "Payment verification failed" });
+      }
+
+      const body = razorpay_order_id + "|" + razorpay_payment_id;
+
+      const expectedSignature = crypto
+        .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
+        .update(body)
+        .digest("hex");
+
+      if (expectedSignature !== razorpay_signature) {
+        return res.status(400).json({ message: "Invalid payment signature" });
+      }
+    }
+
+    // ==================================
+    // 📦 STEP 1: CHECK STOCK
+    // ==================================
+    for (let item of user.cart) {
+      const product = await ProductModel.findById(item.productId);
+
+      if (!product) {
+        return res
+          .status(404)
+          .json({ message: `Product not found: ${item.productId}` });
+      }
+
+      if (product.quantity < item.quantity) {
+        return res.status(400).json({
+          message: `${product.productName} is out of stock. Available: ${product.quantity}`,
+        });
+      }
+    }
+
+    // ==================================
+    // 📉 STEP 2: DEDUCT STOCK
+    // ==================================
+    for (let item of user.cart) {
+      const product = await ProductModel.findById(item.productId);
+      product.quantity -= item.quantity;
+      await product.save();
+    }
+
+    // ==================================
+    // 🧾 STEP 3: CREATE ORDER
+    // ==================================
+    const order = await OrderModel.create({
+      products: user.cart,
+      name: user.name,
+      phone: user.phone,
+      address: {
+        houseName,
+        street,
+        landMark,
+        pincode,
+        city,
+        state,
+      },
+      paymentMethod,
+      paymentStatus:
+        paymentMethod === "Cash on Delivery" ? "Pending" : "Paid",
+      paymentInfo:
+        paymentMethod === "Cash on Delivery"
+          ? {}
+          : {
+              razorpay_payment_id,
+              razorpay_order_id,
+            },
     });
 
-    // Step 4: Save order reference in user
+    // ==================================
+    // 🧹 STEP 4: CLEAR CART
+    // ==================================
     user.orders.push(order._id);
-
-    // Step 5: Clear cart
     user.cart = [];
     await user.save();
 
-    res.json({
+    res.status(201).json({
       message: "Order placed successfully",
       orderId: order._id,
     });
-
   } catch (err) {
     console.error(err);
 
-    if (err.name === "ValidationError") {
-      const message = getValidationErrorMessage(err);
-      res.status(400).json({ message });
-    } else if (err.name === "CastError") {
-      res.status(400).json({ message: err.message });
-    } else {
-      res.status(500).json({
-        message: "Something went wrong in the server. Please try again later."
-      });
+    res.status(500).json({
+      message: "Something went wrong in the server. Please try again later.",
+    });
+  }
+};
+
+const createRazorpayOrder = async (req, res) => {
+  try {
+    const user = req.user;
+
+    // 1️⃣ Cart validation
+    if (!user.cart || user.cart.length === 0) {
+      return res.status(400).json({ message: "Cart is empty" });
     }
+
+    // 2️⃣ Calculate amount from DB (SECURE)
+    let totalAmount = 0;
+
+    for (const item of user.cart) {
+      const product = await ProductModel.findById(item.productId);
+
+      if (!product) {
+        return res
+          .status(404)
+          .json({ message: `Product not found: ${item.productId}` });
+      }
+
+      const price = product.salePrice ?? product.price;
+      totalAmount += price * item.quantity;
+    }
+
+    // 3️⃣ Create Razorpay order
+    const razorpayOrder = await razorpay.orders.create({
+      amount: totalAmount * 100, // rupees → paise
+      currency: "INR",
+      receipt: `order_${Date.now()}`,
+    });
+
+    // 4️⃣ Send to frontend
+    return res.status(200).json(razorpayOrder);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      message: "Failed to create Razorpay order",
+    });
   }
 };
 
@@ -502,4 +589,4 @@ const cancelOrderController = async (req, res) => {
   }
 };
 
-module.exports={registerController,loginController,productListController,cartController,reviewController,orderController,cancelOrderController,cartListController,productController,cartRemoveController,userOrderController,cartQuantityController,addReviewController,reviewListController}
+module.exports={registerController,loginController,productListController,cartController,reviewController,orderController,createRazorpayOrder,cancelOrderController,cartListController,productController,cartRemoveController,userOrderController,cartQuantityController,addReviewController,reviewListController}

@@ -4,7 +4,7 @@ const router = express.Router();
 const {
   registerController,
   loginController,
-  
+  createRazorpayOrder,
   productListController,
   cartController,
   reviewController,
@@ -61,6 +61,7 @@ router.get("/review-list", reviewListController);
 router.put("/addtocart", memberOnlyMiddleware, cartController);
 router.put("/removecart", memberOnlyMiddleware, cartRemoveController);
 router.get("/cart-list", memberOnlyMiddleware, cartListController);
+router.post("/create-order", memberOnlyMiddleware, createRazorpayOrder);
 router.post("/order", memberOnlyMiddleware, orderController);
 router.put("/cancel-order", memberOnlyMiddleware, cancelOrderController);
 router.get("/user-orders", memberOnlyMiddleware, userOrderController);
