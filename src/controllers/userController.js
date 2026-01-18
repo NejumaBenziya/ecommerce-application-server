@@ -434,28 +434,20 @@ const orderController = async (req, res) => {
     // 🧾 STEP 3: CREATE ORDER
     // ==================================
     const order = await OrderModel.create({
-      products: user.cart,
-      name: user.name,
-      phone: user.phone,
-      address: {
-        houseName,
-        street,
-        landMark,
-        pincode,
-        city,
-        state,
-      },
-      paymentMethod,
-      paymentStatus:
-        paymentMethod === "Cash on Delivery" ? "Pending" : "Paid",
-      paymentInfo:
-        paymentMethod === "Cash on Delivery"
-          ? {}
-          : {
-              razorpay_payment_id,
-              razorpay_order_id,
-            },
-    });
+  products: user.cart,
+  name: user.name,
+  phone: user.phone,
+
+  // 🔥 MOVE ADDRESS FIELDS TO ROOT LEVEL
+  houseName,
+  street,
+  landMark,
+  pincode,
+  city,
+  state,
+
+  paymentMethod,
+});
 
     // ==================================
     // 🧹 STEP 4: CLEAR CART
