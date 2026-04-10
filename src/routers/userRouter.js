@@ -6,6 +6,7 @@ const {
   loginController,
   createRazorpayOrder,
   productListController,
+  searchController,
   cartController,
   reviewController,
   orderController,
@@ -56,6 +57,7 @@ router.get("/me", memberOnlyMiddleware, (req, res) => {
 router.get("/product-list", productListController);
 router.get("/product", productController);
 router.get("/review-list", reviewListController);
+router.get("/search",searchController);
 
 // ✅ PROTECTED ROUTES
 router.put("/addtocart", memberOnlyMiddleware, cartController);

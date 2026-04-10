@@ -1,130 +1,148 @@
-const UserModel=require("../models/userModel")
-const bcrypt=require('bcrypt')
-var jwt=require('jsonwebtoken')
-const saltRounds=Number(process.env.SALT_ROUNDS)
-const jwt_secret=process.env.JWT_SECRET
-const {getValidationErrorMessage}= require("../utils/validationUtils")
-const ProductModel=require("../models/productModel")
-const OrderModel=require("../models/orderModel")
+const UserModel = require("../models/userModel")
+const bcrypt = require('bcrypt')
+var jwt = require('jsonwebtoken')
+const saltRounds = Number(process.env.SALT_ROUNDS)
+const jwt_secret = process.env.JWT_SECRET
+const { getValidationErrorMessage } = require("../utils/validationUtils")
+const ProductModel = require("../models/productModel")
+const OrderModel = require("../models/orderModel")
 const crypto = require("crypto");
 const mongoose = require("mongoose");
 const { log } = require("node:console")
 const ReviewModel = require("../models/reviewModel")
 const razorpay = require("../config/razorpay");
 
-const registerController=async (req,res)=>{
- 
-  try{
-    const {name,email,password,phone}=req.body
-    const user_email=await UserModel.findOne({email})
-    const user_phone=await UserModel.findOne({phone})
-    if(user_email){
-        res.status(400).json({message:"User with this Email ID already exists"})
-    }else if(user_phone){
-        res.status(400).json({message:"User with this Phone Number already exists"})
-    }else{
-        bcrypt.hash(password,saltRounds,async function (err,hash) {
-            if(hash){
-              try{
-              const newUser=await UserModel.create({
-                name,email,password: hash,phone
-              })
-              res.json({message:"User registered successfully"})
-            }catch(err){
-              
-              
-              if(err.name==="ValidationError"){
-                const message=getValidationErrorMessage(err)
-                
-                res.status(400).json({message:message})
-              }else{
-                res.json({message:"Something went wrong in the server. Please try after some time."})
-              }
-            }
-            }else{
-                res.status(400).json({message:"password is required."})
-            }
+const registerController = async (req, res) => {
+
+  try {
+    const { name, email, password, phone } = req.body
+    const user_email = await UserModel.findOne({ email })
+    const user_phone = await UserModel.findOne({ phone })
+    if (user_email) {
+      res.status(400).json({ message: "User with this Email ID already exists" })
+    } else if (user_phone) {
+      res.status(400).json({ message: "User with this Phone Number already exists" })
+    } else {
+      bcrypt.hash(password, saltRounds, async function (err, hash) {
+        if (hash) {
+          try {
+            const newUser = await UserModel.create({
+              name, email, password: hash, phone
             })
+            res.json({ message: "User registered successfully" })
+          } catch (err) {
+
+
+            if (err.name === "ValidationError") {
+              const message = getValidationErrorMessage(err)
+
+              res.status(400).json({ message: message })
+            } else {
+              res.json({ message: "Something went wrong in the server. Please try after some time." })
+            }
+          }
+        } else {
+          res.status(400).json({ message: "password is required." })
         }
-      }catch(err){
-        res.json({message:"Something went wrong in the server. Please try after some time."})
-      }      
-    
-}
-const loginController=async(req,res)=>{
-  try{
-       if(!req.body.email || !req.body.password) {
-        return res.status(400).json({"message":"Email ID and password is required"})
-       }
-  
-  const{email,password}=req.body
-  const user=await UserModel.findOne({email})
-  if(user){
-    bcrypt.compare(password,user.password,function(err,result){
-      if(result){
-        var token = jwt.sign(
-  { id: user._id, email: user.email, role: user.role },
-  jwt_secret,
-  { expiresIn: "1d" }
-);
-
-       res.cookie("token", token, {
-  httpOnly: true,
-  sameSite: "none",   // ✅ IMPORTANT
-  secure: true, 
-  path:"/",   // ✅ MUST be false on localhost
-  maxAge: 24 * 60 * 60 * 1000,
-});
-
-       
-res.json({
-  success: true,
-  message: "Login successful",
-  token: token,   
-  user: {
-    id: user._id,
-    email: user.email,
-    role: user.role,
-    cartLength: user.cart ? user.cart.length : 0
-  }
-})
-      }else{
-        res.status(401).json({"message":"Invalid credentials."})
-      }
-    })
-  }else{
-    res.status(401).json({"message":"Invalid credentials."})
-  }
-}catch(err){
-    res.status(500).json({"message":"something went wrong in the server. Please try after sometime"})
-}
-}
-
-
-const productListController=async(req,res)=>{
-  try{
-    const categoryFilter=req.query.productCategory
-    let products
-    if(categoryFilter){
-      products=await ProductModel.find({productCategory:categoryFilter})
-    }else{
-      products =await ProductModel.find()
-      
-      
+      })
     }
-    res.json({message:"Fetched products successfully",products})
-  }catch(err){
-    res.status(500).json({"message":"Something went wrong in the server.Please try again."})
+  } catch (err) {
+    res.json({ message: "Something went wrong in the server. Please try after some time." })
+  }
+
+}
+const loginController = async (req, res) => {
+  try {
+    if (!req.body.email || !req.body.password) {
+      return res.status(400).json({ "message": "Email ID and password is required" })
+    }
+
+    const { email, password } = req.body
+    const user = await UserModel.findOne({ email })
+    if (user) {
+      bcrypt.compare(password, user.password, function (err, result) {
+        if (result) {
+          var token = jwt.sign(
+            { id: user._id, email: user.email, role: user.role },
+            jwt_secret,
+            { expiresIn: "1d" }
+          );
+
+          res.cookie("token", token, {
+            httpOnly: true,
+            sameSite: "none",   // ✅ IMPORTANT
+            secure: true,
+            path: "/",   // ✅ MUST be false on localhost
+            maxAge: 24 * 60 * 60 * 1000,
+          });
+
+
+          res.json({
+            success: true,
+            message: "Login successful",
+            token: token,
+            user: {
+              id: user._id,
+              email: user.email,
+              role: user.role,
+              cartLength: user.cart ? user.cart.length : 0
+            }
+          })
+        } else {
+          res.status(401).json({ "message": "Invalid credentials." })
+        }
+      })
+    } else {
+      res.status(401).json({ "message": "Invalid credentials." })
+    }
+  } catch (err) {
+    res.status(500).json({ "message": "something went wrong in the server. Please try after sometime" })
   }
 }
-const productController=async(req,res)=>{
-  try{
-     const id  = req.query.productId; 
+
+
+const productListController = async (req, res) => {
+  try {
+    const categoryFilter = req.query.productCategory
+    let products
+    if (categoryFilter) {
+      products = await ProductModel.find({ productCategory: categoryFilter })
+    } else {
+      products = await ProductModel.find()
+
+
+    }
+    res.json({ message: "Fetched products successfully", products })
+  } catch (err) {
+    res.status(500).json({ "message": "Something went wrong in the server.Please try again." })
+  }
+}
+const searchController = async (req, res) => {
+  try {
+    const search = req.query.q
+
+    const products = await ProductModel.find({
+      $or: [
+        { productName: { $regex: search, $options: "i" } },
+        { productCategory: { $regex: search, $options: "i" } },
+        { brandName: { $regex: search, $options: "i" } }
+      ]
+    });
+
+    res.json(products);
+
+  } catch (err) {
+    res.status(500).json({ "message": "Something went wrong in the server.Please try again." })
+  }
+}
+const productController = async (req, res) => {
+  try {
+    const id = req.query.productId;
 
     const product = await ProductModel.findById(id)
-    res.json({message:"Fetched product successfully",product})
-  }catch(err){
-    res.status(500).json({"message":"Something went wrong in the server.Please try again."})
+    res.json({ message: "Fetched product successfully", product })
+  } catch (err) {
+    res.status(500).json({ "message": "Something went wrong in the server.Please try again." })
   }
 }
 
@@ -161,59 +179,58 @@ const cartRemoveController = async (req, res) => {
   }
 };
 
-const cartController=async(req,res)=>{
-  
-  try{
-  const user=req.user
-   
- 
-  const {productId}=req.body
-   
-  const existingItem = user.cart.find(
-  item => item.productId.toString() === productId
-);
-console.log(existingItem);
+const cartController = async (req, res) => {
 
-if (existingItem) {
-  
-  existingItem.quantity += 1;
-} else {
-  
-  user.cart.push({ productId, quantity: 1 });
-}
+  try {
+    const user = req.user
 
-await user.save();
-   
-  res.json({message:"Add to cart successfully"})
-  }catch(err){
-    if(err.name==="ValidationError"){
-                const message=getValidationErrorMessage(err)
-                
-                res.status(400).json({message:message})
-              }else if(err.name==="CastError"){
-                 res.status(500).json({message:err.message})
-              }else{
-                res.json({message:"Something went wrong in the server. Please try after some time."})
-              }
+
+    const { productId } = req.body
+
+    const existingItem = user.cart.find(
+      item => item.productId.toString() === productId
+    );
+    console.log(existingItem);
+
+    if (existingItem) {
+
+      existingItem.quantity += 1;
+    } else {
+
+      user.cart.push({ productId, quantity: 1 });
+    }
+
+    await user.save();
+
+    res.json({ message: "Add to cart successfully" })
+  } catch (err) {
+    if (err.name === "ValidationError") {
+      const message = getValidationErrorMessage(err)
+
+      res.status(400).json({ message: message })
+    } else if (err.name === "CastError") {
+      res.status(500).json({ message: err.message })
+    } else {
+      res.json({ message: "Something went wrong in the server. Please try after some time." })
+    }
   }
 }
-const cartQuantityController=async(req,res)=>{
-  try{
-     const user = req.user;
+const cartQuantityController = async (req, res) => {
+  try {
+    const user = req.user;
     const { productId } = req.body;
     const product = user.cart.find(
-  item => item.productId.toString() === productId
-  
-);
- product.quantity -= 1;
- if(product.quantity===0)
- {
-  user.cart = user.cart.filter(
-      (item) => item.productId.toString() !== productId
+      item => item.productId.toString() === productId
+
     );
- }
- await user.save();
-  }catch (err) {
+    product.quantity -= 1;
+    if (product.quantity === 0) {
+      user.cart = user.cart.filter(
+        (item) => item.productId.toString() !== productId
+      );
+    }
+    await user.save();
+  } catch (err) {
     console.error(err);
     res.status(500).json({
       message: "Something went wrong in the server. Please try again."
@@ -225,13 +242,13 @@ const cartListController = async (req, res) => {
     const user = req.user;
     console.log("User cart:", user.cart);
 
-   
+
     const productIds = user.cart.map(item => item.productId);
 
-    
+
     const products = await ProductModel.find({ _id: { $in: productIds } });
 
-    
+
     const cartItems = products.map(product => {
       const item = user.cart.find(
         c => c.productId.toString() === product._id.toString()
@@ -257,12 +274,12 @@ const cartListController = async (req, res) => {
 
 const reviewController = async (req, res) => {
   try {
-   const { product_id, rating} = req.body;
-      console.log(rating);
-  const product = await ProductModel.findById(product_id)
+    const { product_id, rating } = req.body;
+    console.log(rating);
+    const product = await ProductModel.findById(product_id)
     product.rating.push(rating)
     await product.save();
-  
+
 
     res.json({ message: "Rating added successfully", rating: product.rating });
   } catch (err) {
@@ -434,20 +451,20 @@ const orderController = async (req, res) => {
     // 🧾 STEP 3: CREATE ORDER
     // ==================================
     const order = await OrderModel.create({
-  products: user.cart,
-  name: user.name,
-  phone: user.phone,
+      products: user.cart,
+      name: user.name,
+      phone: user.phone,
 
-  // 🔥 MOVE ADDRESS FIELDS TO ROOT LEVEL
-  houseName,
-  street,
-  landMark,
-  pincode,
-  city,
-  state,
+      // 🔥 MOVE ADDRESS FIELDS TO ROOT LEVEL
+      houseName,
+      street,
+      landMark,
+      pincode,
+      city,
+      state,
 
-  paymentMethod,
-});
+      paymentMethod,
+    });
 
     // ==================================
     // 🧹 STEP 4: CLEAR CART
@@ -511,12 +528,12 @@ const createRazorpayOrder = async (req, res) => {
   }
 };
 
-const userOrderController=async (req,res)=>{
-  try{
-    const user=req.user
+const userOrderController = async (req, res) => {
+  try {
+    const user = req.user
     const orderIds = user.orders
     const orders = await OrderModel.find({ _id: { $in: orderIds } })
-  .populate("products.productId"); 
+      .populate("products.productId");
 
     res.json({
       message: "Fetched orders  successfully",
@@ -581,4 +598,4 @@ const cancelOrderController = async (req, res) => {
   }
 };
 
-module.exports={registerController,loginController,productListController,cartController,reviewController,orderController,createRazorpayOrder,cancelOrderController,cartListController,productController,cartRemoveController,userOrderController,cartQuantityController,addReviewController,reviewListController}
+module.exports = { registerController, loginController, productListController, searchController, cartController, reviewController, orderController, createRazorpayOrder, cancelOrderController, cartListController, productController, cartRemoveController, userOrderController, cartQuantityController, addReviewController, reviewListController }
