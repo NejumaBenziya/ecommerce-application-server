@@ -100,23 +100,46 @@ const loginController = async (req, res) => {
   }
 }
 
-
 const productListController = async (req, res) => {
   try {
-    const categoryFilter = req.query.productCategory
-    let products
+    const categoryFilter = req.query.productCategory;
+
+    // Pagination values
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 10;
+
+    const skip = (page - 1) * limit;
+
+    let query = {isDeleted: false};
+
+    // Apply category filter if exists
     if (categoryFilter) {
-      products = await ProductModel.find({ productCategory: categoryFilter })
-    } else {
-      products = await ProductModel.find()
-
-
+      query.productCategory = categoryFilter;
     }
-    res.json({ message: "Fetched products successfully", products })
+
+    // Get paginated products
+    const products = await ProductModel.find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    // Total count (for frontend pagination UI)
+    const totalProducts = await ProductModel.countDocuments(query);
+
+    res.json({
+      message: "Fetched products successfully",
+      products,
+      currentPage: page,
+      totalPages: Math.ceil(totalProducts / limit),
+      totalProducts
+    });
+
   } catch (err) {
-    res.status(500).json({ "message": "Something went wrong in the server.Please try again." })
+    res.status(500).json({
+      message: "Something went wrong in the server. Please try again."
+    });
   }
-}
+};
 const searchController = async (req, res) => {
   try {
     const search = req.query.q

@@ -7,7 +7,7 @@ const { log } = require("node:console")
 const addProductController=async (req,res)=>{
   try{
     const data=req.body
-    console.log(data);
+    
     const productImage=data.productImage
     const brandName=data.brandName
     const productName=data.productName
