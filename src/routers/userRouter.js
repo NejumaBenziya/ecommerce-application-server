@@ -41,15 +41,20 @@ router.get("/me", memberOnlyMiddleware, (req, res) => {
    if (!req.user) {
     return res.status(401).json({ message: "Not authenticated" });
   }
-
+  const cartLength = (req.user.cart || []).reduce(
+    (acc, item) => acc + (item.quantity || 0),
+    0
+  );
   res.json({
   user: {
     id: req.user._id,
     email: req.user.email,
     role: req.user.role,
+    cart:req.user.cart
   },
-  cartLength: req.user.cart?.length || 0,
+  cartLength
 });
+
 
 });
 

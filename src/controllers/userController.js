@@ -54,52 +54,57 @@ const registerController = async (req, res) => {
 const loginController = async (req, res) => {
   try {
     if (!req.body.email || !req.body.password) {
-      return res.status(400).json({ "message": "Email ID and password is required" })
+      return res.status(400).json({
+        message: "Email ID and password is required",
+      });
     }
 
-    const { email, password } = req.body
-    const user = await UserModel.findOne({ email })
-    if (user) {
-      bcrypt.compare(password, user.password, function (err, result) {
-        if (result) {
-          var token = jwt.sign(
-            { id: user._id, email: user.email, role: user.role },
-            jwt_secret,
-            { expiresIn: "1d" }
-          );
+    const { email, password } = req.body;
 
-          res.cookie("token", token, {
-            httpOnly: true,
-            sameSite: "none",   // ✅ IMPORTANT
-            secure: true,
-            path: "/",   // ✅ MUST be false on localhost
-            maxAge: 24 * 60 * 60 * 1000,
-          });
+    const user = await UserModel.findOne({ email });
 
-
-          res.json({
-            success: true,
-            message: "Login successful",
-            token: token,
-            user: {
-              id: user._id,
-              email: user.email,
-              role: user.role,
-              cartLength: user.cart ? user.cart.length : 0
-            }
-          })
-        } else {
-          res.status(401).json({ "message": "Invalid credentials." })
-        }
-      })
-    } else {
-      res.status(401).json({ "message": "Invalid credentials." })
+    if (!user) {
+      return res.status(401).json({ message: "Invalid credentials." });
     }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+
+    if (!isMatch) {
+      return res.status(401).json({ message: "Invalid credentials." });
+    }
+
+    const token = jwt.sign(
+      { id: user._id, email: user.email, role: user.role },
+      jwt_secret,
+      { expiresIn: "1d" }
+    );
+
+    res.cookie("token", token, {
+      httpOnly: true,
+      sameSite: "none",
+      secure: true, 
+      path: "/",
+      maxAge: 24 * 60 * 60 * 1000,
+    });
+
+    res.json({
+      success: true,
+      message: "Login successful",
+      token,
+      user: {
+        id: user._id,
+        email: user.email,
+        role: user.role,
+        
+      },
+    });
+
   } catch (err) {
-    res.status(500).json({ "message": "something went wrong in the server. Please try after sometime" })
+    res.status(500).json({
+      message: "Something went wrong in the server.",
+    });
   }
-}
-
+};
 const productListController = async (req, res) => {
   try {
     const categoryFilter = req.query.productCategory;
@@ -253,6 +258,11 @@ const cartQuantityController = async (req, res) => {
       );
     }
     await user.save();
+    res.json({
+      success: true,
+      message: "Quantity updated",
+      cart: user.cart,
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({
