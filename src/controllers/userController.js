@@ -82,7 +82,7 @@ const loginController = async (req, res) => {
     res.cookie("token", token, {
       httpOnly: true,
       sameSite: "none",
-      secure: true, 
+      secure: true,
       path: "/",
       maxAge: 24 * 60 * 60 * 1000,
     });
@@ -95,7 +95,7 @@ const loginController = async (req, res) => {
         id: user._id,
         email: user.email,
         role: user.role,
-        
+        wishlist: user.wishlist
       },
     });
 
@@ -115,7 +115,7 @@ const productListController = async (req, res) => {
 
     const skip = (page - 1) * limit;
 
-    let query = {isDeleted: false};
+    let query = { isDeleted: false };
 
     // Apply category filter if exists
     if (categoryFilter) {
@@ -173,7 +173,54 @@ const productController = async (req, res) => {
     res.status(500).json({ "message": "Something went wrong in the server.Please try again." })
   }
 }
+const addtowishlistController = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { productId } = req.body;
 
+    const user = await UserModel.findById(userId);
+
+    if (!user.wishlist.includes(productId)) {
+      user.wishlist.push(productId);
+      await user.save();
+    }
+
+    res.json({ success: true, wishlist: user.wishlist });
+  } catch (error) {
+    res.status(500).json({ message: "Error adding to wishlist" });
+  }
+}
+const wishlistRemoveController = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { productId } = req.body;
+
+    const user = await UserModel.findById(userId);
+
+    user.wishlist = user.wishlist.filter(
+      (id) => id.toString() !== productId
+    );
+
+    await user.save();
+
+    res.json({ success: true, wishlist: user.wishlist });
+  } catch (error) {
+    res.status(500).json({ message: "Error removing from wishlist" });
+  }
+}
+const wishlistController = async (req, res) => {
+  try {
+    const user = req.user;
+
+    const products = await ProductModel.find({
+      _id: { $in: user.wishlist },
+    });
+
+    res.json(products);
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching wishlist" });
+  }
+};
 const cartRemoveController = async (req, res) => {
   try {
     const user = req.user;
@@ -288,7 +335,9 @@ const cartListController = async (req, res) => {
       );
       return {
         ...product.toObject(),
-        quantity: item ? item.quantity : 1
+
+        quantity: item ? item.quantity : 1, //  cart qty
+        stock: product.quantity,                //  actual stock
       };
     });
 
@@ -631,4 +680,4 @@ const cancelOrderController = async (req, res) => {
   }
 };
 
-module.exports = { registerController, loginController, productListController, searchController, cartController, reviewController, orderController, createRazorpayOrder, cancelOrderController, cartListController, productController, cartRemoveController, userOrderController, cartQuantityController, addReviewController, reviewListController }
+module.exports = { registerController, loginController, productListController, searchController, addtowishlistController, wishlistRemoveController, wishlistController, cartController, reviewController, orderController, createRazorpayOrder, cancelOrderController, cartListController, productController, cartRemoveController, userOrderController, cartQuantityController, addReviewController, reviewListController }

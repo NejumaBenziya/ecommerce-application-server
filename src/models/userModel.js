@@ -28,6 +28,12 @@ const userSchema=new mongoose.Schema({
         enum:["member","admin","seller"],
         default:"member"
         },
+        wishlist: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Product",
+    },
+  ],
      cart: [
     {
       productId: { type: mongoose.Schema.Types.ObjectId, ref: "Product" },

@@ -7,6 +7,9 @@ const {
   createRazorpayOrder,
   productListController,
   searchController,
+  addtowishlistController,
+  wishlistRemoveController,
+  wishlistController,
   cartController,
   reviewController,
   orderController,
@@ -22,9 +25,9 @@ const {
 
 const { memberOnlyMiddleware } = require("../middlewares/authenticationMiddleware");
 
-// ✅ AUTH ROUTES
+//  AUTH ROUTES
 router.post("/register", registerController);
-router.post("/login", loginController); // ✅ REAL LOGIN
+router.post("/login", loginController); // LOGIN
 router.post("/logout", (req, res) => {
   res.clearCookie("token", {
     httpOnly: true,
@@ -36,7 +39,7 @@ router.post("/logout", (req, res) => {
   res.json({ message: "Logged out successfully" });
 });
 
-// ✅ RESTORE LOGIN (ON REFRESH)
+// RESTORE LOGIN ( REFRESH)
 router.get("/me", memberOnlyMiddleware, (req, res) => {
    if (!req.user) {
     return res.status(401).json({ message: "Not authenticated" });
@@ -50,7 +53,8 @@ router.get("/me", memberOnlyMiddleware, (req, res) => {
     id: req.user._id,
     email: req.user.email,
     role: req.user.role,
-    cart:req.user.cart
+    cart:req.user.cart,
+    wishlist:req.user.wishlist 
   },
   cartLength
 });
@@ -58,13 +62,16 @@ router.get("/me", memberOnlyMiddleware, (req, res) => {
 
 });
 
-// ✅ PUBLIC ROUTES
+//  PUBLIC ROUTES
 router.get("/product-list", productListController);
 router.get("/product", productController);
 router.get("/review-list", reviewListController);
 router.get("/search",searchController);
 
-// ✅ PROTECTED ROUTES
+//  PROTECTED ROUTES
+router.put("/addtowishlist", memberOnlyMiddleware, addtowishlistController);
+router.put("/removewishlist", memberOnlyMiddleware, wishlistRemoveController);
+router.get("/wishlist", memberOnlyMiddleware, wishlistController);
 router.put("/addtocart", memberOnlyMiddleware, cartController);
 router.put("/removecart", memberOnlyMiddleware, cartRemoveController);
 router.get("/cart-list", memberOnlyMiddleware, cartListController);
