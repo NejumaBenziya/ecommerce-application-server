@@ -11,6 +11,8 @@ const mongoose = require("mongoose");
 const { log } = require("node:console")
 const ReviewModel = require("../models/reviewModel")
 const razorpay = require("../config/razorpay");
+const sendEmail = require("../utils/sendEmail");
+const orderEmailTemplate = require("../templates/orderEmailTemplate");          
 
 const registerController = async (req, res) => {
 
@@ -619,7 +621,8 @@ const orderController = async (req, res) => {
     user.orders.push(order._id);
     user.cart = [];
     await user.save();
-
+    const html = orderEmailTemplate(user, order);
+    await sendEmail(user.email, "Order Confirmation", html);
     res.status(201).json({
       message: "Order placed successfully",
       orderId: order._id,

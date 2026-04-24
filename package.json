@@ -23,6 +23,7 @@
     "mongodb": "^6.18.0",
     "mongoose": "^8.17.1",
     "node-cron": "^4.2.1",
+    "nodemailer": "^8.0.5",
     "razorpay": "^2.9.6"
   },
   "devDependencies": {
