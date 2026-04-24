@@ -16,38 +16,64 @@ const registerController = async (req, res) => {
 
   try {
     const { name, email, password, phone } = req.body
+
     const user_email = await UserModel.findOne({ email })
     const user_phone = await UserModel.findOne({ phone })
+
     if (user_email) {
-      res.status(400).json({ message: "User with this Email ID already exists" })
+      return res.status(400).json({ message: "User with this Email ID already exists" })
     } else if (user_phone) {
-      res.status(400).json({ message: "User with this Phone Number already exists" })
+      return res.status(400).json({ message: "User with this Phone Number already exists" })
     } else {
+
       bcrypt.hash(password, saltRounds, async function (err, hash) {
+
+        //  Handle bcrypt error
+        if (err) {
+          return res.status(500).json({
+            message: "Error hashing password"
+          });
+        }
+
         if (hash) {
           try {
             const newUser = await UserModel.create({
-              name, email, password: hash, phone
+              name,
+              email,
+              password: hash,
+              phone
             })
-            res.json({ message: "User registered successfully" })
-          } catch (err) {
 
+            res.status(201).json({
+              message: "User registered successfully"
+            })
+
+          } catch (err) {
 
             if (err.name === "ValidationError") {
               const message = getValidationErrorMessage(err)
 
               res.status(400).json({ message: message })
+
             } else {
-              res.json({ message: "Something went wrong in the server. Please try after some time." })
+              res.status(500).json({
+                message: "Something went wrong in the server. Please try after some time."
+              })
             }
           }
+
         } else {
-          res.status(400).json({ message: "password is required." })
+          return res.status(400).json({
+            message: "Password is required."
+          })
         }
       })
     }
+
   } catch (err) {
-    res.json({ message: "Something went wrong in the server. Please try after some time." })
+    res.status(500).json({
+      message: "Something went wrong in the server. Please try after some time."
+    })
   }
 
 }
@@ -168,6 +194,9 @@ const productController = async (req, res) => {
     const id = req.query.productId;
 
     const product = await ProductModel.findById(id)
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" });
+    }
     res.json({ message: "Fetched product successfully", product })
   } catch (err) {
     res.status(500).json({ "message": "Something went wrong in the server.Please try again." })
@@ -179,6 +208,11 @@ const addtowishlistController = async (req, res) => {
     const { productId } = req.body;
 
     const user = await UserModel.findById(userId);
+
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
 
     if (!user.wishlist.includes(productId)) {
       user.wishlist.push(productId);
@@ -197,6 +231,11 @@ const wishlistRemoveController = async (req, res) => {
 
     const user = await UserModel.findById(userId);
 
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
     user.wishlist = user.wishlist.filter(
       (id) => id.toString() !== productId
     );
@@ -212,6 +251,11 @@ const wishlistController = async (req, res) => {
   try {
     const user = req.user;
 
+
+    if (!user) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
     const products = await ProductModel.find({
       _id: { $in: user.wishlist },
     });
@@ -224,6 +268,9 @@ const wishlistController = async (req, res) => {
 const cartRemoveController = async (req, res) => {
   try {
     const user = req.user;
+    if (!user) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
     const { productId } = req.body;
 
     if (!productId) {
@@ -258,14 +305,21 @@ const cartController = async (req, res) => {
 
   try {
     const user = req.user
-
+    if (!user) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
 
     const { productId } = req.body
+    const product = await ProductModel.findById(productId);
+
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" });
+    }
 
     const existingItem = user.cart.find(
       item => item.productId.toString() === productId
     );
-    console.log(existingItem);
+
 
     if (existingItem) {
 
@@ -298,6 +352,9 @@ const cartQuantityController = async (req, res) => {
       item => item.productId.toString() === productId
 
     );
+    if (!product) {
+      return res.status(404).json({ message: "Product not found in cart" });
+    }
     product.quantity -= 1;
     if (product.quantity === 0) {
       user.cart = user.cart.filter(
@@ -320,9 +377,9 @@ const cartQuantityController = async (req, res) => {
 const cartListController = async (req, res) => {
   try {
     const user = req.user;
-    console.log("User cart:", user.cart);
-
-
+    if (!user) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
     const productIds = user.cart.map(item => item.productId);
 
 
@@ -359,6 +416,9 @@ const reviewController = async (req, res) => {
     const { product_id, rating } = req.body;
     console.log(rating);
     const product = await ProductModel.findById(product_id)
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" });
+    }
     product.rating.push(rating)
     await product.save();
 
@@ -372,17 +432,20 @@ const reviewController = async (req, res) => {
 const addReviewController = async (req, res) => {
   try {
     const user = req.user;
+    if (!user) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
     const review_by = user._id;
     const { product_id, rating, feedback, orderId } = req.body;
 
-    // 1️⃣ Create review
+    //  Create review
     const review = await ReviewModel.create({
       rating,
       feedback,
       review_by,
     });
 
-    // 2️⃣ Push review into product
+    // Push review into product
     const product = await ProductModel.findById(product_id);
     if (!product) {
       return res.status(404).json({ message: "Product not found" });
@@ -390,7 +453,7 @@ const addReviewController = async (req, res) => {
     product.reviews.push(review);
     await product.save();
 
-    // 3️⃣ Update order → mark reviewDone = true for that product
+    // Update order → mark reviewDone = true for that product
     const order = await OrderModel.findById(orderId);
     if (!order) {
       return res.status(404).json({ message: "Order not found" });
@@ -404,7 +467,7 @@ const addReviewController = async (req, res) => {
       await order.save();
     }
 
-    // ✅ Send response
+    // Send response
     res.status(201).json({
       message: "Review added successfully",
       review,
@@ -419,13 +482,13 @@ const addReviewController = async (req, res) => {
 
 const reviewListController = async (req, res) => {
   try {
-    const { productId } = req.query;  // 🔹 productId comes from query params
+    const { productId } = req.query;  //  productId comes from query params
 
     if (!productId) {
       return res.status(400).json({ message: "productId is required" });
     }
 
-    // 🔹 Populate reviews AND review_by inside reviews
+    //  Populate reviews AND review_by inside reviews
     const product = await ProductModel.findById(productId)
       .populate({
         path: "reviews",
@@ -459,7 +522,9 @@ const reviewListController = async (req, res) => {
 const orderController = async (req, res) => {
   try {
     const user = req.user;
-
+    if (!user) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
     if (!user.cart || user.cart.length === 0) {
       return res.status(400).json({ message: "Your cart is empty." });
     }
@@ -478,7 +543,7 @@ const orderController = async (req, res) => {
     } = req.body;
 
     // ==================================
-    // 🔐 STEP 0: VERIFY PAYMENT (ONLINE)
+    //  VERIFY PAYMENT (ONLINE)
     // ==================================
     if (paymentMethod !== "Cash on Delivery") {
       if (
@@ -502,7 +567,7 @@ const orderController = async (req, res) => {
     }
 
     // ==================================
-    // 📦 STEP 1: CHECK STOCK
+    //  CHECK STOCK
     // ==================================
     for (let item of user.cart) {
       const product = await ProductModel.findById(item.productId);
@@ -521,7 +586,7 @@ const orderController = async (req, res) => {
     }
 
     // ==================================
-    // 📉 STEP 2: DEDUCT STOCK
+    //  DEDUCT STOCK
     // ==================================
     for (let item of user.cart) {
       const product = await ProductModel.findById(item.productId);
@@ -530,14 +595,14 @@ const orderController = async (req, res) => {
     }
 
     // ==================================
-    // 🧾 STEP 3: CREATE ORDER
+    // CREATE ORDER
     // ==================================
     const order = await OrderModel.create({
       products: user.cart,
       name: user.name,
       phone: user.phone,
 
-      // 🔥 MOVE ADDRESS FIELDS TO ROOT LEVEL
+
       houseName,
       street,
       landMark,
@@ -549,7 +614,7 @@ const orderController = async (req, res) => {
     });
 
     // ==================================
-    // 🧹 STEP 4: CLEAR CART
+    // CLEAR CART
     // ==================================
     user.orders.push(order._id);
     user.cart = [];
@@ -571,13 +636,15 @@ const orderController = async (req, res) => {
 const createRazorpayOrder = async (req, res) => {
   try {
     const user = req.user;
-
-    // 1️⃣ Cart validation
+    if (!user) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    //  Cart validation
     if (!user.cart || user.cart.length === 0) {
       return res.status(400).json({ message: "Cart is empty" });
     }
 
-    // 2️⃣ Calculate amount from DB (SECURE)
+    // Calculate amount from DB (SECURE)
     let totalAmount = 0;
 
     for (const item of user.cart) {
@@ -593,14 +660,14 @@ const createRazorpayOrder = async (req, res) => {
       totalAmount += price * item.quantity;
     }
 
-    // 3️⃣ Create Razorpay order
+    //  Create Razorpay order
     const razorpayOrder = await razorpay.orders.create({
       amount: totalAmount * 100, // rupees → paise
       currency: "INR",
       receipt: `order_${Date.now()}`,
     });
 
-    // 4️⃣ Send to frontend
+    //  Send to frontend
     return res.status(200).json(razorpayOrder);
   } catch (error) {
     console.error(error);
@@ -613,6 +680,9 @@ const createRazorpayOrder = async (req, res) => {
 const userOrderController = async (req, res) => {
   try {
     const user = req.user
+    if (!user) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
     const orderIds = user.orders
     const orders = await OrderModel.find({ _id: { $in: orderIds } })
       .populate("products.productId");
@@ -634,6 +704,9 @@ const userOrderController = async (req, res) => {
 const cancelOrderController = async (req, res) => {
   try {
     const user = req.user;
+    if (!user) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
     const { orderId, productId } = req.body;
 
     // Find the order
@@ -680,4 +753,4 @@ const cancelOrderController = async (req, res) => {
   }
 };
 
-module.exports = { registerController, loginController, productListController, searchController, addtowishlistController, wishlistRemoveController, wishlistController, cartController, reviewController, orderController, createRazorpayOrder, cancelOrderController, cartListController, productController, cartRemoveController, userOrderController, cartQuantityController, addReviewController, reviewListController }
+module.exports = { registerController, loginController, productListController, searchController, addtowishlistController, wishlistRemoveController, wishlistController, cartController, reviewController, orderController, createRazorpayOrder, cancelOrderController, cartListController, productController, cartRemoveController, userOrderController, cartQuantityController, addReviewController, reviewListController } 
