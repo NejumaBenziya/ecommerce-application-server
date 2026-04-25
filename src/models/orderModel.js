@@ -1,4 +1,4 @@
-const mongoose=require('mongoose');
+const mongoose = require('mongoose');
 
 /**
  * Order Schema
@@ -19,14 +19,32 @@ const orderSchema = new mongoose.Schema(
         // Reference to product collection
         productId: { type: mongoose.Schema.Types.ObjectId, ref: "product" },
 
+        // Brand name of the product
+
+        brandName: {
+          type: String,
+        },
+
+        // Product name
+        productName: {
+          type: String,
+
+        },
         // Quantity of product
         quantity: { type: Number, default: 1 },
 
+        // Product price
+
+        price: {
+          type: Number,
+          required: [true, "Price is required"],
+        },
+
         // Whether this specific product is cancelled
-        cancelled:{type:Boolean,default:false},
+        cancelled: { type: Boolean, default: false },
 
         // Whether review is submitted for this product
-        reviewDone:{type:Boolean,default:false}
+        reviewDone: { type: Boolean, default: false }
       },
     ],
 
@@ -115,7 +133,7 @@ const orderSchema = new mongoose.Schema(
     status: {
       type: String,
       required: [true, "Status is required"],
-      enum: ["ordered", "shipped","cancelled" ,"delivered"],
+      enum: ["ordered", "shipped", "cancelled", "delivered"],
       default: "ordered",
     },
 
@@ -125,7 +143,7 @@ const orderSchema = new mongoose.Schema(
     expectedDate: {
       type: Date,
     },
-   
+
   },
   { timestamps: true } // automatically adds createdAt & updatedAt
 );
@@ -159,6 +177,6 @@ orderSchema.pre("save", function (next) {
 /**
  * Order model
  */
-const OrderModel=mongoose.model("order",orderSchema)
+const OrderModel = mongoose.model("order", orderSchema)
 
-module.exports=OrderModel
+module.exports = OrderModel

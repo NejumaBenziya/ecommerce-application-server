@@ -521,16 +521,25 @@ const reviewListController = async (req, res) => {
 
 
 
+// Controller to handle order placement
 const orderController = async (req, res) => {
   try {
     const user = req.user;
+
+    // ===============================
+    // AUTHORIZATION CHECK
+    // ===============================
+    // Ensure the user is logged in
     if (!user) {
       return res.status(401).json({ message: "Unauthorized" });
     }
+
+    // Ensure the cart is not empty
     if (!user.cart || user.cart.length === 0) {
       return res.status(400).json({ message: "Your cart is empty." });
     }
 
+    // Destructure address & payment details from request body
     const {
       houseName,
       street,
@@ -544,10 +553,13 @@ const orderController = async (req, res) => {
       razorpay_signature,
     } = req.body;
 
-    // ==================================
-    //  VERIFY PAYMENT (ONLINE)
-    // ==================================
+    // ===============================
+    // PAYMENT VERIFICATION (ONLINE)
+    // ===============================
+    // If payment method is NOT Cash on Delivery, verify Razorpay payment
     if (paymentMethod !== "Cash on Delivery") {
+      
+      // Check if required Razorpay fields are present
       if (
         !razorpay_payment_id ||
         !razorpay_order_id ||
@@ -556,30 +568,36 @@ const orderController = async (req, res) => {
         return res.status(400).json({ message: "Payment verification failed" });
       }
 
+      // Create a signature string for verification
       const body = razorpay_order_id + "|" + razorpay_payment_id;
 
+      // Generate expected signature using secret key
       const expectedSignature = crypto
         .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
         .update(body)
         .digest("hex");
 
+      // Compare generated signature with Razorpay signature
       if (expectedSignature !== razorpay_signature) {
         return res.status(400).json({ message: "Invalid payment signature" });
       }
     }
 
-    // ==================================
-    //  CHECK STOCK
-    // ==================================
+    // ===============================
+    // STOCK VALIDATION
+    // ===============================
+    // Check if each product in cart has sufficient stock
     for (let item of user.cart) {
       const product = await ProductModel.findById(item.productId);
 
+      // Product not found in database
       if (!product) {
         return res
           .status(404)
           .json({ message: `Product not found: ${item.productId}` });
       }
 
+      // Insufficient stock
       if (product.quantity < item.quantity) {
         return res.status(400).json({
           message: `${product.productName} is out of stock. Available: ${product.quantity}`,
@@ -587,24 +605,38 @@ const orderController = async (req, res) => {
       }
     }
 
-    // ==================================
-    //  DEDUCT STOCK
-    // ==================================
+    // ===============================
+    // STOCK DEDUCTION + ORDER ITEMS PREPARATION
+    // ===============================
+    const products = [];
+
     for (let item of user.cart) {
       const product = await ProductModel.findById(item.productId);
+
+      // Deduct purchased quantity from stock
       product.quantity -= item.quantity;
       await product.save();
+
+      // Store required product details in order
+      products.push({
+        productId: product._id,
+        productName: product.productName,
+        brandName: product.brandName,
+        price: product.price,
+        quantity: item.quantity,
+      });
     }
 
-    // ==================================
-    // CREATE ORDER
-    // ==================================
+    // ===============================
+    // ORDER CREATION
+    // ===============================
+    // Save order details in database
     const order = await OrderModel.create({
-      products: user.cart,
+      products: products,
       name: user.name,
       phone: user.phone,
 
-
+      // Shipping address
       houseName,
       street,
       landMark,
@@ -615,19 +647,33 @@ const orderController = async (req, res) => {
       paymentMethod,
     });
 
-    // ==================================
-    // CLEAR CART
-    // ==================================
+    // ===============================
+    // POST-ORDER OPERATIONS
+    // ===============================
+
+    // Add order reference to user's order history
     user.orders.push(order._id);
+
+    // Clear user's cart after successful order
     user.cart = [];
     await user.save();
+
+    // Send order confirmation email
     const html = orderEmailTemplate(user, order);
     await sendEmail(user.email, "Order Confirmation", html);
+
+    // ===============================
+    // SUCCESS RESPONSE
+    // ===============================
     res.status(201).json({
       message: "Order placed successfully",
       orderId: order._id,
     });
+
   } catch (err) {
+    // ===============================
+    // ERROR HANDLING
+    // ===============================
     console.error(err);
 
     res.status(500).json({
@@ -680,28 +726,52 @@ const createRazorpayOrder = async (req, res) => {
   }
 };
 
+// Controller to fetch all orders of the logged-in user
 const userOrderController = async (req, res) => {
   try {
-    const user = req.user
+    const user = req.user;
+
+    // ===============================
+    // AUTHORIZATION CHECK
+    // ===============================
+    // Ensure the request is made by an authenticated user
     if (!user) {
       return res.status(401).json({ message: "Unauthorized" });
     }
-    const orderIds = user.orders
+
+    // ===============================
+    // EXTRACT USER ORDER IDS
+    // ===============================
+    // Get all order IDs stored in the user document
+    const orderIds = user.orders;
+
+    // ===============================
+    // FETCH ORDERS FROM DATABASE
+    // ===============================
+    // Find all orders that match the user's order IDs
+    // Populate product details inside each order
     const orders = await OrderModel.find({ _id: { $in: orderIds } })
       .populate("products.productId");
 
+    // ===============================
+    // SUCCESS RESPONSE
+    // ===============================
     res.json({
-      message: "Fetched orders  successfully",
+      message: "Fetched orders successfully",
       orders: orders
     });
 
   } catch (err) {
+    // ===============================
+    // ERROR HANDLING
+    // ===============================
     console.error(err);
+
     res.status(500).json({
       message: "Something went wrong in the server. Please try again."
     });
   }
-}
+};
 
 
 const cancelOrderController = async (req, res) => {
