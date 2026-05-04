@@ -1,6 +1,11 @@
 const express = require("express");
 const router = express.Router();
-
+const UserModel = require("../models/userModel")
+const { OAuth2Client } = require("google-auth-library");
+const bcrypt = require('bcrypt')
+var jwt = require('jsonwebtoken')
+const saltRounds = Number(process.env.SALT_ROUNDS)
+const jwt_secret = process.env.JWT_SECRET
 // Import user controllers
 const {
   registerController,
@@ -39,6 +44,76 @@ const { memberOnlyMiddleware } = require("../middlewares/authenticationMiddlewar
  * POST /user/register
  */
 router.post("/register", registerController);
+
+router.post("/google", async (req, res) => {
+  try {
+    const { token } = req.body;
+    const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+    const ticket = await client.verifyIdToken({
+      idToken: token,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+    
+    const payload = ticket.getPayload();
+    
+    const { email, name, sub } = payload;
+
+    let user = await UserModel.findOne({ email });
+    console.log("user",user)
+  // Case 1: Existing user → link Google
+    if (user) {
+      if (!user.googleId) {
+        user.googleId = sub;
+        await user.save();
+      }
+    }
+
+    // Case 2: New user → auto register
+    else {
+      user = await UserModel.create({
+        name,
+        email,
+        googleId: sub,
+        password: null,
+        role: "member",
+        wishlist: [],
+        cart: [],
+      });
+    }
+        
+    const tokenJWT = jwt.sign(
+      { id: user._id, email: user.email, role: user.role },
+      jwt_secret,
+      { expiresIn: "1d" }
+    );
+
+    
+    res.cookie("token", tokenJWT, {
+      httpOnly: true,
+      sameSite: "none",
+      secure: true,
+      path: "/",
+      maxAge: 24 * 60 * 60 * 1000,
+    });
+
+   
+    res.json({
+      success: true,
+      message: "Login successful",
+      token: tokenJWT,
+      user: {
+        id: user._id,
+        email: user.email,
+        role: user.role,
+        wishlist: user.wishlist || [],
+      },
+    });
+
+  } catch (err) {
+    console.error("🔥 VERIFY ERROR:", err);
+    res.status(401).json({ message: "Google login failed" });
+  }
+});
 
 /**
  * Login user

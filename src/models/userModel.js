@@ -1,4 +1,4 @@
-const mongoose =require('mongoose')
+const mongoose = require('mongoose')
 
 /**
  * User Schema
@@ -10,53 +10,54 @@ const mongoose =require('mongoose')
  * - Cart
  * - Orders
  */
-const userSchema=new mongoose.Schema({
+const userSchema = new mongoose.Schema({
 
   /**
    * User name
    */
-  name : {
-    type : String,
-    required : [true,"Name is required"],
+  name: {
+    type: String,
+    required: [true, "Name is required"],
   },
 
   /**
    * Email (unique & lowercase)
    */
-  email:{
-    type : String,
-    required : [true,"Email is required"],
-    unique : true,
-    lowercase : true
+  email: {
+    type: String,
+    required: [true, "Email is required"],
+    unique: true,
+    lowercase: true
   },
-
+  googleId: {
+    type: String,
+    default: null,
+  },
   /**
    * Hashed password
    */
-  password:{
-    type : String,
-    required : [true,"Password is required"],
-    minlength : [8,"Password must be atleast 8 characters"]
+  password: {
+    type: String,
+    default: null,
   },
 
   /**
    * Phone number (unique)
    */
-  phone : {
-    type :String,
-    required : [true,"Phone number is required"],
-    minlength : [10,"phone number must be atleast 10 characters"],
-    maxlength : [15,"Phone number should not exceed more than 15 characters"],
-    unique:true
+  phone: {
+    type: String,
+    minlength: [10, "phone number must be atleast 10 characters"],
+    maxlength: [15, "Phone number should not exceed more than 15 characters"],
+    unique: true
   },
 
   /**
    * User role for authorization
    */
-  role:{
-    type:String,
-    enum:["member","admin","seller"],
-    default:"member"
+  role: {
+    type: String,
+    enum: ["member", "admin", "seller"],
+    default: "member"
   },
 
   /**
@@ -65,7 +66,7 @@ const userSchema=new mongoose.Schema({
   wishlist: [
     {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "product", 
+      ref: "product",
     },
   ],
 
@@ -86,15 +87,15 @@ const userSchema=new mongoose.Schema({
   /**
    * Orders placed by user
    */
-  orders:[{
+  orders: [{
     type: mongoose.Schema.Types.ObjectId,
-    ref : "order"
+    ref: "order"
   }]
 
-},{
-  timestamps : true // adds createdAt & updatedAt
+}, {
+  timestamps: true // adds createdAt & updatedAt
 })
 
-const UserModel=mongoose.model("user",userSchema)
+const UserModel = mongoose.model("user", userSchema)
 
-module.exports=UserModel
+module.exports = UserModel

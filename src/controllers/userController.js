@@ -12,7 +12,7 @@ const { log } = require("node:console")
 const ReviewModel = require("../models/reviewModel")
 const razorpay = require("../config/razorpay");
 const sendEmail = require("../utils/sendEmail");
-const orderEmailTemplate = require("../templates/orderEmailTemplate");          
+const orderEmailTemplate = require("../templates/orderEmailTemplate");
 
 const registerController = async (req, res) => {
 
@@ -93,6 +93,11 @@ const loginController = async (req, res) => {
 
     if (!user) {
       return res.status(401).json({ message: "Invalid credentials." });
+    }
+    if (!user.password) {
+      return res.status(400).json({
+        message: "Please login using Google"
+      });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
@@ -558,7 +563,7 @@ const orderController = async (req, res) => {
     // ===============================
     // If payment method is NOT Cash on Delivery, verify Razorpay payment
     if (paymentMethod !== "Cash on Delivery") {
-      
+
       // Check if required Razorpay fields are present
       if (
         !razorpay_payment_id ||
